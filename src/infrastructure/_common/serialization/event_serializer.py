@@ -4,7 +4,7 @@ from src.infrastructure._common.serialization.serializer import Serializer
 from src.domain._base.domain_event import DomainEvent
 # Register Domain Events here (Manually for now, or via decorator later)
 from src.domain.training.events import (
-    SessionStarted, SessionPaused, SessionResumed, SessionCompleted,
+    SessionStarted, SessionPaused, SessionResumed, SessionCompleted, SessionTicked,
     BlockStarted, RoundStarted, RestStarted, AnnouncementTriggered
 )
 
@@ -13,6 +13,7 @@ EVENT_REGISTRY: Dict[str, Type[DomainEvent]] = {
     "SessionPaused": SessionPaused,
     "SessionResumed": SessionResumed,
     "SessionCompleted": SessionCompleted,
+    "SessionTicked": SessionTicked,
     "BlockStarted": BlockStarted,
     "RoundStarted": RoundStarted,
     "RestStarted": RestStarted,
