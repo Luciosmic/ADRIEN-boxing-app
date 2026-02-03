@@ -29,6 +29,12 @@ class SkipBlockRequest:
     session_id: str
 
 @dataclass(frozen=True)
+class MoveBlockRequest:
+    workout_id: str
+    from_index: int
+    to_index: int
+
+@dataclass(frozen=True)
 class GetSessionRequest:
     session_id: str
 

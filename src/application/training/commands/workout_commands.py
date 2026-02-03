@@ -11,6 +11,11 @@ class CreateWorkout(Command):
     name: str
     blocks: List[Block]
 
+class MoveBlock(Command):
+    workout_id: str
+    from_index: int
+    to_index: int
+
 # --- Handler ---
 
 class CreateWorkoutHandler:
@@ -32,3 +37,15 @@ class CreateWorkoutHandler:
         
         await self.workout_repo.save(workout)
         return workout_id
+
+class MoveBlockHandler:
+    def __init__(self, workout_repo: IWorkoutRepository):
+        self.workout_repo = workout_repo
+
+    async def __call__(self, command: MoveBlock) -> None:
+        workout = await self.workout_repo.get_by_id(command.workout_id)
+        if not workout:
+            raise ValueError(f"Workout with id {command.workout_id} not found")
+        
+        workout.move_block(command.from_index, command.to_index)
+        await self.workout_repo.save(workout)

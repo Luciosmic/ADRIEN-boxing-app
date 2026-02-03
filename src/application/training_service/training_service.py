@@ -7,7 +7,8 @@ from src.application.training_service.i_api_training_service import ITrainingSer
 from src.application.training_service.dtos.training_request_dtos import (
     CreateWorkoutRequest, StartSessionRequest, TickSessionRequest,
     PauseSessionRequest, ResumeSessionRequest, SkipBlockRequest,
-    GetSessionRequest, ListWorkoutsRequest, GetWorkoutRequest
+    GetSessionRequest, ListWorkoutsRequest, GetWorkoutRequest,
+    MoveBlockRequest
 )
 from src.application.training_service.dtos.training_response_dtos import (
     CreateWorkoutResponse, StartSessionResponse, ActionResponse,
@@ -23,8 +24,10 @@ from src.application.training.commands.session_commands import (
     TickSession, TickSessionHandler,
     PauseSession, PauseSessionHandler,
     ResumeSession, ResumeSessionHandler,
+    ResumeSession, ResumeSessionHandler,
     SkipBlock, SkipBlockHandler
 )
+from src.application.training.commands.workout_commands import MoveBlock, MoveBlockHandler
 from src.application.training.queries.workout_queries import (
     ListWorkouts, ListWorkoutsHandler,
     GetWorkout, GetWorkoutHandler
@@ -37,11 +40,10 @@ class TrainingService(ITrainingService):
         base_path: str = ".osu",
         workout_repo = None,
         session_repo = None,
-        event_store = None
+        event_store = None,
+        event_bus = None
     ):
-        # Wiring up the infrastructure and handlers manually (Composition Root equivalent)
-        # If repos are provided (e.g. Mocks), use them. Otherwise default to Osu/File implementations.
-        
+        # wiring
         self.workout_repo = workout_repo or OsuWorkoutRepository(base_path=os.path.join(base_path, "persistence", "workouts"))
         
         if not event_store:
@@ -49,10 +51,26 @@ class TrainingService(ITrainingService):
         else:
             self.event_store = event_store
             
+        # Event Bus (Optional for now, defaults to InMemory if not provided? Or None?)
+        # Ideally we want a bus.
+        from src.infrastructure.events.bus.in_memory_event_bus import InMemoryEventBus
+        self.event_bus = event_bus or InMemoryEventBus()
+
         if not session_repo:
-            self.session_repo = OsuSessionRepository(event_store=self.event_store, base_path=os.path.join(base_path, "persistence", "sessions"))
+            # We need to inject event_bus into SessionRepo if we want it to publish?
+            # Or we publish manually here?
+            # Let's injecting event_bus into Repository is a common pattern for "Store & Publish".
+            # But OsuSessionRepository signature needs update.
+            self.session_repo = OsuSessionRepository(
+                event_store=self.event_store, 
+                base_path=os.path.join(base_path, "persistence", "sessions"),
+                event_bus=self.event_bus
+            )
         else:
             self.session_repo = session_repo
+
+        # Event bus is now wired externally via CompositionRoot
+        # No audio logic here - separation of concerns
 
         # Handlers
         self._create_workout = CreateWorkoutHandler(self.workout_repo)
@@ -65,6 +83,7 @@ class TrainingService(ITrainingService):
         self._pause_session = PauseSessionHandler(self.session_repo)
         self._resume_session = ResumeSessionHandler(self.session_repo)
         self._skip_block = SkipBlockHandler(self.session_repo)
+        self._move_block = MoveBlockHandler(self.workout_repo)
 
     async def create_workout(self, request: CreateWorkoutRequest) -> CreateWorkoutResponse:
         cmd = CreateWorkout(name=request.name, blocks=request.blocks)
@@ -124,6 +143,17 @@ class TrainingService(ITrainingService):
     async def skip_block(self, request: SkipBlockRequest) -> ActionResponse:
         try:
             await self._skip_block(SkipBlock(session_id=request.session_id))
+            return ActionResponse(success=True)
+        except ValueError as e:
+            return ActionResponse(success=False, message=str(e))
+
+    async def move_block(self, request: MoveBlockRequest) -> ActionResponse:
+        try:
+            await self._move_block(MoveBlock(
+                workout_id=request.workout_id,
+                from_index=request.from_index,
+                to_index=request.to_index
+            ))
             return ActionResponse(success=True)
         except ValueError as e:
             return ActionResponse(success=False, message=str(e))

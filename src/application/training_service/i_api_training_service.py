@@ -3,7 +3,8 @@ from typing import List, Optional
 from src.application.training_service.dtos.training_request_dtos import (
     CreateWorkoutRequest, StartSessionRequest, TickSessionRequest,
     PauseSessionRequest, ResumeSessionRequest, SkipBlockRequest,
-    GetSessionRequest, ListWorkoutsRequest, GetWorkoutRequest
+    GetSessionRequest, ListWorkoutsRequest, GetWorkoutRequest,
+    MoveBlockRequest
 )
 from src.application.training_service.dtos.training_response_dtos import (
     CreateWorkoutResponse, StartSessionResponse, ActionResponse,
@@ -45,4 +46,8 @@ class ITrainingService(ABC):
 
     @abstractmethod
     async def skip_block(self, request: SkipBlockRequest) -> ActionResponse:
+        pass
+
+    @abstractmethod
+    async def move_block(self, request: MoveBlockRequest) -> ActionResponse:
         pass
