@@ -20,6 +20,18 @@ class SessionCompleted(DomainEvent):
     session_id: str
     completed_at: datetime
 
+class SessionTicked(DomainEvent):
+    """
+    Event emitted on every tick of the session.
+    Listeners can use this to generate coaching instructions.
+    """
+    session_id: str
+    current_block_index: int
+    block_type: BlockType
+    current_round: int
+    time_left: int
+    is_work_phase: bool
+
 class BlockStarted(DomainEvent):
     session_id: str
     block_index: int

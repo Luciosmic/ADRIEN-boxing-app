@@ -69,6 +69,18 @@ class TrainingSession(AggregateRoot):
 
         if self.time_left == 0:
             self._handle_phase_complete()
+        
+        # Emit tick event for listeners (coaching, etc.)
+        from src.domain.training.events import SessionTicked
+        if self.current_block_index < len(self.workout.blocks):
+            self.add_domain_event(SessionTicked(
+                session_id=str(self.id),
+                current_block_index=self.current_block_index,
+                block_type=self.workout.blocks[self.current_block_index].type,
+                current_round=self.current_round,
+                time_left=self.time_left,
+                is_work_phase=self.is_work_phase
+            ))
 
     def _initialize_current_block(self):
         if self.current_block_index >= len(self.workout.blocks):
